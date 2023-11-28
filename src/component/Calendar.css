@@ -1,0 +1,45 @@
+/* Center the calendar container */
+.calendar-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100%;
+  }
+  
+  /* Increase the font size of the month and year text */
+  .rbc-toolbar-label {
+    font-size: 50px; /* Increase the font size to 70 */
+    color: powderblue; /* Set the text color to powder blue */
+    font-weight: bold;
+    text-align: center;
+    margin: 10px;
+  }
+  
+  /* Style the custom toolbar buttons */
+  .rbc-btn-group {
+    display: flex;
+    justify-content: absolute;
+    align-items: absolute;
+    margin: 10px;
+  }
+  
+  .rbc-btn-group button {
+    background-color: powderblue; /* Set the button background color to powder blue */
+    color: white; /* Set the button text color to white */
+    border: none;
+    margin: 5px;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    justify-content: absolute;
+    align-items: absolute;
+
+  }
+  
+  /* Style the custom toolbar label */
+  .rbc-custom-label {
+    display: block;
+  }
+  
