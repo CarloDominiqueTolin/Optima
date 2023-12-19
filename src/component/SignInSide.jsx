@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Grid,
@@ -10,21 +10,25 @@ import {
   Checkbox,
   Link
 } from '@mui/material';
+import { useSupabase } from '.././context/SupabaseContext';
 
 const SignInScreen = () => {
+  const { user, loading, signIn, signOut, readPatients, readAppointments } = useSupabase();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSignIn = (e) => {
+  const handleSignIn = async (e) => {
     e.preventDefault();
+    console.log('Username', email);
+    console.log('Password', password);
 
     // Simple authentication check (replace with your authentication logic)
-    if (email === 'admin' && password === 'password') {
-      // Navigate to the Dashboard on successful login
+    const { data: {user, session}, error} = await signIn(email,password);
+    if (user && session) {
       navigate('/dashboard');
     } else {
-      alert('Invalid email or password');
+      alert("Error logging in: try again or signup bro");
     }
   };
 

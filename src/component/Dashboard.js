@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import MyCalendar from './Calendar';
 import PatientList from './PatientList';
@@ -16,14 +16,23 @@ import {
 } from '@mui/material';
 import Webcam from 'react-webcam';
 import { useNavigate } from 'react-router-dom';
+import { useSupabase } from '.././context/SupabaseContext';
+import { detectHandwrittenText } from "./googleOCR";
 
 const Dashboard = () => {
+  const {
+    signOut, 
+    readPatients, 
+    readAppointments, 
+    insertPatient,
+  } = useSupabase();
+
   const [events, setEvents] = useState([]);
   const [patients, setPatients] = useState([]);
   const [openCamera, setOpenCamera] = useState(false);
   const [openVerification, setOpenVerification] = useState(false);
   const [capturedImage, setCapturedImage] = useState(null);
-  const [patientDetails, setPatientDetails] = useState({ firstName: '', lastName: '', age: '', occupation: '', oldRx: '', newRx: '', frame: '' });
+  const [patientDetails, setPatientDetails] = useState({ firstname: '', lastname: '', age: '', occupation: '', oldrx: '', newrx: '', frame: '' });
   const webcamRef = React.useRef(null);
   const [showPatients, setShowPatients] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -32,6 +41,7 @@ const Dashboard = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteAppointmentIndex, setDeleteAppointmentIndex] = useState(null);
 
+  useEffect(()=>{readPatients(setPatients);readAppointments()},[]);
 
   const handleDeleteConfirmation = (index) => {
     setDeleteAppointmentIndex(index);
@@ -60,9 +70,31 @@ const Dashboard = () => {
 
   const handleCapture = () => {
     const imageSrc = webcamRef.current.getScreenshot();
-    setCapturedImage(imageSrc);
-    setOpenCamera(false);
-    setOpenVerification(true);
+
+    // Create a temporary image element to load the captured image
+    const tempImage = new Image();
+    tempImage.src = imageSrc;
+    
+    tempImage.onload = () => {
+      // Create a canvas and draw the image on it
+      const canvas = document.createElement('canvas');
+      canvas.width = tempImage.width;
+      canvas.height = tempImage.height;
+      const context = canvas.getContext('2d');
+      context.drawImage(tempImage, 0, 0, tempImage.width, tempImage.height);
+  
+      // Convert the captured frame to base64
+      const base64Data = canvas.toDataURL('image/png');
+  
+      // Set the base64-encoded image in state or use it as needed
+      setCapturedImage(base64Data);
+      console.log(base64Data);
+      detectHandwrittenText(base64Data);
+  
+      // Close the camera and open the verification
+      setOpenCamera(false);
+      setOpenVerification(true);
+    };
   };
 
   const handleVerificationClose = () => {
@@ -76,10 +108,12 @@ const Dashboard = () => {
   const handleSavePatient = () => {
     setPatients([...patients, { ...patientDetails, image: capturedImage }]);
     setOpenVerification(false);
-    setPatientDetails({ firstName: '', lastName: '', age: '', occupation: '', oldRx: '', newRx: '', frame: '' });
+    insertPatient(patientDetails);
+    setPatientDetails({ firstname: '', lastname: '', age: '', occupation: '', oldrx: '', newrx: '', frame: '' });
   };
 
   const toggleShowPatients = () => {
+    readPatients(setPatients);
     setShowPatients(!showPatients);
   };
 
@@ -164,12 +198,12 @@ const Dashboard = () => {
         <DialogContent>
           {capturedImage && <img src={capturedImage} alt="Captured" style={{ width: '100%', marginBottom: '20px' }} />}
           <Grid container spacing={2}>
-            <Grid item xs={6}><TextField fullWidth label="First Name" name="firstName" value={patientDetails.firstName} onChange={handleChange} /></Grid>
-            <Grid item xs={6}><TextField fullWidth label="Last Name" name="lastName" value={patientDetails.lastName} onChange={handleChange} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="First Name" name="firstname" value={patientDetails.firstname} onChange={handleChange} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="Last Name" name="lastname" value={patientDetails.lastname} onChange={handleChange} /></Grid>
             <Grid item xs={6}><TextField fullWidth label="Age" name="age" value={patientDetails.age} onChange={handleChange} /></Grid>
             <Grid item xs={6}><TextField fullWidth label="Occupation" name="occupation" value={patientDetails.occupation} onChange={handleChange} /></Grid>
-            <Grid item xs={6}><TextField fullWidth label="OLD RX: OD" name="oldRx" value={patientDetails.oldRx} onChange={handleChange} /></Grid>
-            <Grid item xs={6}><TextField fullWidth label="NEW RX: OD" name="newRx" value={patientDetails.newRx} onChange={handleChange} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="OLD RX: OD" name="oldrx" value={patientDetails.oldrx} onChange={handleChange} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="NEW RX: OD" name="newrx" value={patientDetails.newrx} onChange={handleChange} /></Grid>
             <Grid item xs={12}><TextField fullWidth label="Frame" name="frame" value={patientDetails.frame} onChange={handleChange} /></Grid>
           </Grid>
         </DialogContent>

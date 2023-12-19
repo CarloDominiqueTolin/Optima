@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { Box, Grid, Paper, Typography, TextField, Button, Link } from '@mui/material';
+import { supabase } from ".././supabase/client";
+
+const register = (email,password) => supabase.auth.signUp({ email, password });
 
 const SignUpScreen = () => {
   const navigate = useNavigate();
@@ -9,13 +12,18 @@ const SignUpScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSignUp = (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
 
-    // Add your signup logic here
+    console.log("Email: ",email);
+    console.log("Password: ",password);
 
+    // Add your signup logic here
+    let { data, error } = await register(email, password);
     // For demonstration purposes, let's navigate to the SignInScreen
-    navigate('/signin');
+    if (!error && data) {console.log("Registration Successful!");}
+    
+    navigate('/');
   };
 
   return (
