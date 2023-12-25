@@ -9,7 +9,7 @@ const TransactionHistoryDialog = ({ open, onClose, transactionHistory }) => {
         <List>
           {transactionHistory.map((transaction, index) => (
             <ListItem key={index}>
-              <ListItemText primary={transaction.action} secondary={transaction.timestamp} />
+              <ListItemText primary={transaction.transaction_type} secondary={transaction.transaction_time+' '+transaction.transaction_date} />
             </ListItem>
           ))}
         </List>

@@ -6,7 +6,7 @@ import { useSupabase } from '../context/SupabaseContext';
 
 
 const PatientList = ({ patients, setPatients, }) => {
-  const { deletePatient, readPatients, editPatient, readPatient } = useSupabase();
+  const { deletePatient, fetchPatients, editPatient, readPatient } = useSupabase();
   const [openConfirmDialog, setOpenConfirmDialog] = useState(false);
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [currentPatient, setCurrentPatient] = useState({});
@@ -22,7 +22,7 @@ const PatientList = ({ patients, setPatients, }) => {
 
   const confirmDelete = () => {
     deletePatient(editIndex);
-    readPatients(setPatients);
+    fetchPatients(setPatients);
     setOpenConfirmDialog(false);
   };
 
@@ -39,9 +39,7 @@ const PatientList = ({ patients, setPatients, }) => {
 
   const saveEdit = () => {
     editPatient(editIndex, currentPatient);
-    const updatedPatients = [...patients];
-    updatedPatients[editIndex] = currentPatient;
-    setPatients(updatedPatients);
+    fetchPatients(setPatients);
     setOpenEditDialog(false);
     reset();
   };
@@ -51,7 +49,7 @@ const PatientList = ({ patients, setPatients, }) => {
       {patients.map((patient,index) => (
         <Paper key={patient.patient_id} style={{ margin: '10px', padding: '10px', borderRadius: '5px', border: '1px solid #ccc' }}>
           <ListItem style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <ListItemText primary={`ID: ${patient.patient_id} - ${patient.firstname} ${patient.lastname}`} />
+            <ListItemText primary={`ID: ${index + 1} - ${patient.firstname} ${patient.lastname}`} />
             <div>
               <IconButton edge="end" aria-label="edit" onClick={() => handleEdit(patient.patient_id)}>
                 <EditIcon />
@@ -81,8 +79,10 @@ const PatientList = ({ patients, setPatients, }) => {
             <Grid item xs={6}><TextField fullWidth label="Last Name" name="lastname" value={currentPatient.lastname || ''} onChange={handleEditChange} /></Grid>
             <Grid item xs={6}><TextField fullWidth label="Age" name="age" value={currentPatient.age || ''} onChange={handleEditChange} /></Grid>
             <Grid item xs={6}><TextField fullWidth label="Occupation" name="occupation" value={currentPatient.occupation || ''} onChange={handleEditChange} /></Grid>
-            <Grid item xs={6}><TextField fullWidth label="OLD RX: OD" name="oldrx" value={currentPatient.oldrx || ''} onChange={handleEditChange} /></Grid>
-            <Grid item xs={6}><TextField fullWidth label="NEW RX: OD" name="newrx" value={currentPatient.newrx || ''} onChange={handleEditChange} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="OLD RX: OD" name="oldrx_od" value={currentPatient.oldrx_od || ''} onChange={handleEditChange} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="NEW RX: OD" name="newrx_od" value={currentPatient.newrx_od || ''} onChange={handleEditChange} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="OLD RX: OS" name="oldrx_os" value={currentPatient.oldrx_os || ''} onChange={handleEditChange} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="NEW RX: OS" name="newrx_os" value={currentPatient.newrx_os || ''} onChange={handleEditChange} /></Grid>
             <Grid item xs={12}><TextField fullWidth label="Frame" name="frame" value={currentPatient.frame || ''} onChange={handleEditChange} /></Grid>
           </Grid>
         </DialogContent>

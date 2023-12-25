@@ -1,89 +1,150 @@
 // SupabaseContext.js
 import { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from '../supabase/client'; // Your Supabase configuration file
+import { supabase } from '../supabase/client'; 
 
 const SupabaseContext = createContext();
 
 export const SupabaseProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [isLoggedin, setLoginStatus] = useState(false);
 
-  useEffect(() => {
-    // Fetch the initial session
-    const session = supabase.auth.getSession();
-    setUser(session?.user ?? null);
-    setLoading(false);
-  
-    // Subscribe to authentication state changes
-    const subscription = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
-  
-    return () => {
-      // Unsubscribe from authentication state changes when the component is unmounted
-      // subscription?.unsubscribe();
-    };
-  }, []);
-  
+
+  const addTransaction = async (transactionType) => {
+    const currentDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const currentTime = new Date().toLocaleTimeString('en-US', { hour12: false }); // HH:MM:SS
+    const { error } = await supabase.from('transactions').insert([{
+          patient_id: null,
+          transaction_date: currentDate,
+          transaction_time: currentTime,
+          transaction_type: transactionType,
+        }]);
+    if (error) { 
+      console.log('Error adding transaction:', error.message); 
+    } else { 
+      console.log("Succesfully added transaction"); 
+    }
+  };
+
 
   const value = {
     user,
-    loading,
-    signIn: async (email, password) => {
-      const { user, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {console.error(error);}
-      setUser(user);
+    isLoggedin,
+
+    signIn: async (email, password, changeRoute) => {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        setUser(null); 
+        console.error(error);
+        alert("Login failed! Try again.");
+      } else {
+        setUser(data.session);
+        setLoginStatus(true);
+        changeRoute('/dashboard');
+        addTransaction('Logged in');
+      }
     },
+
+
     signOut: async () => {
       await supabase.auth.signOut();
-      setUser(null);
+      setUser(null); 
+      addTransaction('Logged out');
+      alert('Logged out');
+      setLoginStatus(false);
     },
-    readPatients: async (setPatients) => {
+    
+
+    fetchTransactions: async (setTransactions) => {
+      let { data: transactions, error } = await supabase.from('transactions').select('*');
+      setTransactions(transactions);
+      if (error) { 
+        alert('Fetching transactions failed!');
+        console.log(error); 
+      } else { 
+        console.log("Succesfully fetched transactions"); 
+      }
+    },
+
+
+    fetchPatients: async (setPatients) => {
       let { data: patients, error } = await supabase.from('patients').select('*');
       setPatients(patients);
-      if (error) { console.log(error); } else { console.log("Succesfully retrieved patient records"); }
+      if (error) { 
+        alert('Reading patients failed!');
+        console.log(error); 
+      } else { 
+        console.log("Succesfully retrieved patient records"); 
+      }
     },
-    readAppointments: async () => {
-      let { data: appointments, error } = await supabase.from('appointments').select('*');
-      if (error) { console.log(error); } else { console.log("Succesfully retrieved appointment records"); }
-    },
-    insertPatient: async (patientDetails) => {
-      try { 
-        const { data, error } = await supabase.from('patients').insert({
-          firstname: patientDetails.firstname,
-          lastname: patientDetails.lastname,
-          age: patientDetails.age,
-          occupation: patientDetails.occupation,
-          oldrx: patientDetails.oldrx,
-          newrx: patientDetails.newrx,
-          frame: patientDetails.frame
-        }).select();
-        if (error) { console.error('Error inserting record:', error.message); } else { console.log('Record inserted successfully:', data); }
-      } catch (error) { console.error('Error inserting record:', error.message); }
-    },
-    deletePatient: async (patient_id) => {
-      const { error } = await supabase.from('patients').delete().eq('patient_id', patient_id);
-      if (error) { console.log('Error deleting record:', error.message);
-      } else { console.log("Succesfully deleted patient_id:", patient_id); }
-    },
-    editPatient: async (patient_id, patientDetails) => {
-      const { data, error } = await supabase.from('patients').update({
-        firstname: patientDetails.firstname,
-        lastname: patientDetails.lastname,
-        age: patientDetails.age,
-        occupation: patientDetails.occupation,
-        oldrx: patientDetails.oldrx,
-        newrx: patientDetails.newrx,
-        frame: patientDetails.frame
-      }).eq('patient_id', patient_id).select();
-      if (error) { console.log('Error updating record:', error.message); } else { console.log("Succesfully updated patient_id:", patient_id); }
-    },
+
+
     readPatient: async (patient_id) => {
       const { data, error } = await supabase.from('patients').select("*").eq('patient_id', patient_id);
-      if (error) { console.log('Error finding record:', error.message); } else { console.log("Succesfully found patient_id:", patient_id); }
+      if (error) { 
+        console.log('Error finding record:', error.message); 
+      } else { 
+        console.log("Succesfully found patient_id:", patient_id); 
+      }
       if (data) { return (data[0]); }
     },
+
+
+    insertPatient: async (patientDetails) => {
+      try { 
+        const { data, error } = await supabase.from('patients').insert(patientDetails).select();
+        if (error) { 
+          alert('Adding patient failed!');
+          console.error('Error inserting record:', error.message); 
+        } else { 
+          console.log('Record inserted successfully:', data); 
+          alert("Succesfully created new patient!");
+          addTransaction("Added Patient: "+patientDetails.lastname+","+patientDetails.firstname);
+        }
+      } catch (error) { 
+        alert('Adding patient failed!');
+        console.error('Error inserting record:', error.message); 
+      }
+    },
+
+    
+    deletePatient: async (patient_id) => {
+      const { error } = await supabase.from('patients').delete().eq('patient_id', patient_id);
+      if (error) { 
+        alert('Deleting patient failed!');
+        console.log('Error deleting record:', error.message);
+      } else { 
+        alert("Succesfully deleted patient!");
+        console.log("Succesfully deleted patient_id:", patient_id); 
+        addTransaction("Deleted Patient: "+patient_id);
+      }
+    },
+
+
+    editPatient: async (patient_id, patientDetails) => {
+      const { error } = await supabase.from('patients').update(patientDetails).eq('patient_id', patient_id).select();
+      if (error) { 
+        console.log('Error updating record:', error.message); 
+      } else { 
+        alert("Succesfully updated patient!");
+        console.log("Succesfully updated patient_id:", patient_id); 
+        addTransaction("Edited Patient: "+patient_id);
+      }
+    },
+
+
+    
+
+    readAppointments: async () => {
+      let { error } = await supabase.from('appointments').select('*');
+      if (error) { 
+        alert('Reading appointments failed!');
+        console.log(error); 
+      } else { 
+        console.log("Succesfully retrieved appointment records"); 
+      }
+    },
   };
+
 
   return <SupabaseContext.Provider value={value}>{children}</SupabaseContext.Provider>;
 };

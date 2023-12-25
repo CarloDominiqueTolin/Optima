@@ -17,31 +17,44 @@ import {
 import Webcam from 'react-webcam';
 import { useNavigate } from 'react-router-dom';
 import { useSupabase } from '.././context/SupabaseContext';
-import { detectHandwrittenText } from "./googleOCR";
 
 const Dashboard = () => {
   const {
+    isLoggedin,
+    fetchTransactions,
     signOut, 
-    readPatients, 
+    fetchPatients, 
     readAppointments, 
     insertPatient,
   } = useSupabase();
+  
+  const navigate = useNavigate();
+  const webcamRef = React.useRef(null);
 
-  const [events, setEvents] = useState([]);
-  const [patients, setPatients] = useState([]);
   const [openCamera, setOpenCamera] = useState(false);
   const [openVerification, setOpenVerification] = useState(false);
-  const [capturedImage, setCapturedImage] = useState(null);
-  const [patientDetails, setPatientDetails] = useState({ firstname: '', lastname: '', age: '', occupation: '', oldrx: '', newrx: '', frame: '' });
-  const webcamRef = React.useRef(null);
   const [showPatients, setShowPatients] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [openLogoutConfirmation, setOpenLogoutConfirmation] = useState(false);
-  const navigate = useNavigate();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteAppointmentIndex, setDeleteAppointmentIndex] = useState(null);
 
-  useEffect(()=>{readPatients(setPatients);readAppointments()},[]);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [patientDetails, setPatientDetails] = useState({
+    firstname: '',
+    lastname: '',
+    age: '',
+    occupation: '',
+    oldrx_os: '',
+    newrx_os: '',
+    oldrx_od: '',
+    newrx_od: '',
+    frame: '' 
+  });
+
+  const [events, setEvents] = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [transactionHistory, setTransactionHistory] = useState([]);
 
   const handleDeleteConfirmation = (index) => {
     setDeleteAppointmentIndex(index);
@@ -89,7 +102,6 @@ const Dashboard = () => {
       // Set the base64-encoded image in state or use it as needed
       setCapturedImage(base64Data);
       console.log(base64Data);
-      detectHandwrittenText(base64Data);
   
       // Close the camera and open the verification
       setOpenCamera(false);
@@ -109,11 +121,21 @@ const Dashboard = () => {
     setPatients([...patients, { ...patientDetails, image: capturedImage }]);
     setOpenVerification(false);
     insertPatient(patientDetails);
-    setPatientDetails({ firstname: '', lastname: '', age: '', occupation: '', oldrx: '', newrx: '', frame: '' });
+    setPatientDetails({
+      firstname: '',
+      lastname: '',
+      age: '',
+      occupation: '',
+      oldrx_os: '',
+      newrx_os: '',
+      oldrx_od: '',
+      newrx_od: '',
+      frame: '' 
+    });
   };
 
   const toggleShowPatients = () => {
-    readPatients(setPatients);
+    fetchPatients(setPatients);
     setShowPatients(!showPatients);
   };
 
@@ -122,25 +144,36 @@ const Dashboard = () => {
   };
 
   const handleConfirmLogout = () => {
+    signOut();
     setOpenLogoutConfirmation(false);
     navigate('/');
-    // Perform logout actions here
   };
 
   const handleCloseLogoutConfirmation = () => {
     setOpenLogoutConfirmation(false);
   };
 
+  useEffect(()=>{
+    if (isLoggedin) {
+      fetchPatients(setPatients);
+      readAppointments();
+      fetchTransactions(setTransactionHistory);
+    } else {
+      navigate('/');
+      alert("Login First!");
+    }
+  },[]);
+
   return (
     <Box sx={{ display: 'flex' }}>
       <CssBaseline />
       <Sidebar
         appointments={events}
+        transactions={transactionHistory}
         onCameraOpen={handleOpenCamera}
         onListPatients={toggleShowPatients}
         onSettingsClick={handleSettingsClick}
         onDeleteAppointment={handleDeleteConfirmation}
-
       />
       {showPatients ? (
         <PatientList patients={patients} setPatients={setPatients} />
@@ -168,11 +201,11 @@ const Dashboard = () => {
       )}
       
       <Dialog
-      open={deleteDialogOpen}
-      onClose={handleCloseDeleteDialog}
-      aria-labelledby="alert-dialog-title"
-      aria-describedby="alert-dialog-description"
-    >
+        open={deleteDialogOpen}
+        onClose={handleCloseDeleteDialog}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
       <DialogTitle id="alert-dialog-title">{"Confirm Deletion"}</DialogTitle>
       <DialogContent>
         <DialogContentText id="alert-dialog-description">
@@ -202,8 +235,10 @@ const Dashboard = () => {
             <Grid item xs={6}><TextField fullWidth label="Last Name" name="lastname" value={patientDetails.lastname} onChange={handleChange} /></Grid>
             <Grid item xs={6}><TextField fullWidth label="Age" name="age" value={patientDetails.age} onChange={handleChange} /></Grid>
             <Grid item xs={6}><TextField fullWidth label="Occupation" name="occupation" value={patientDetails.occupation} onChange={handleChange} /></Grid>
-            <Grid item xs={6}><TextField fullWidth label="OLD RX: OD" name="oldrx" value={patientDetails.oldrx} onChange={handleChange} /></Grid>
-            <Grid item xs={6}><TextField fullWidth label="NEW RX: OD" name="newrx" value={patientDetails.newrx} onChange={handleChange} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="OLD RX: OD" name="oldrx_od" value={patientDetails.oldrx_od} onChange={handleChange} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="NEW RX: OD" name="newrx_od" value={patientDetails.newrx_od} onChange={handleChange} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="OLD RX: OS" name="oldrx_os" value={patientDetails.oldrx_os} onChange={handleChange} /></Grid>
+            <Grid item xs={6}><TextField fullWidth label="NEW RX: OS" name="newrx_os" value={patientDetails.newrx_os} onChange={handleChange} /></Grid>
             <Grid item xs={12}><TextField fullWidth label="Frame" name="frame" value={patientDetails.frame} onChange={handleChange} /></Grid>
           </Grid>
         </DialogContent>
